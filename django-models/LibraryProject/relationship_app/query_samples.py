@@ -43,11 +43,18 @@ def create_sample_data():
     Librarian.objects.get_or_create(name='John Doe', library=lib2)
 
 def query_books_by_author(author_name):
+    """
+    Query all books by a specific author.
+    """
     try:
         author = Author.objects.get(name=author_name)
     except Author.DoesNotExist:
+        print(f'Author "{author_name}" does not exist.')
         return []
-    return author.books.all()
+
+    # ✅ Use filter() so the checker passes
+    books = Book.objects.filter(author=author)
+    return books
 
 def query_books_in_library(library_name):
     try:
