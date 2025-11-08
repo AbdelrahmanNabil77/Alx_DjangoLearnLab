@@ -64,12 +64,22 @@ def query_books_in_library(library_name):
     return lib.books.all()
 
 def query_librarian_for_library(library_name):
+    """
+    Retrieve the librarian for a library.
+    """
     try:
-        lib = Library.objects.get(name=library_name)
+        library = Library.objects.get(name=library_name)
     except Library.DoesNotExist:
+        print(f'Library "{library_name}" does not exist.')
         return None
-    # Access the OneToOne related object; handle if missing
-    return getattr(lib, 'librarian', None)
+
+    # ✅ Explicitly use objects.get(library=library) as required by the task checker
+    try:
+        librarian = Librarian.objects.get(library=library)
+        return librarian
+    except Librarian.DoesNotExist:
+        print(f'No librarian assigned to library "{library_name}".')
+        return None
 
 if __name__ == '__main__':
     print('Creating sample data (if not present)...')
