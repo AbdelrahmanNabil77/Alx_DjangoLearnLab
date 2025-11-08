@@ -10,7 +10,8 @@ def list_books(request):
     Function-based view that lists all books and their authors.
     """
     books = Book.objects.all()  # Query all books
-    return render(request, 'list_books.html', {'books': books})
+    return render(request, 'relationship_app/list_books.html', {'books': books})
+
 
 
 # ✅ Class-based view to display library details
