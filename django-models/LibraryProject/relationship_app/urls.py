@@ -2,6 +2,9 @@ from django.urls import path
 # ✅ Explicit import required by checker
 from .views import list_books
 from .views import LibraryDetailView  # optional but good practice
+from django.urls import path
+from django.contrib.auth.views import LoginView, LogoutView  # ✅ for direct use
+from . import views  # ✅ so we can reference views.register and others
 from .views import (
     list_books,
     LibraryDetailView,
