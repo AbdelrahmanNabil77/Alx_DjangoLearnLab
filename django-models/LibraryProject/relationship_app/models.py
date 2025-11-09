@@ -28,6 +28,13 @@ class Book(models.Model):
     def __str__(self):
         return f'{self.title} (by {self.author})'
 
+    class Meta:
+        permissions = [
+            ("can_add_book", "Can add a new book entry"),
+            ("can_change_book", "Can modify an existing book entry"),
+            ("can_delete_book", "Can delete a book entry"),
+        ]
+
 
 class Library(models.Model):
     name = models.CharField(max_length=200)

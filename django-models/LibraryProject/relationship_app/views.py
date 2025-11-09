@@ -8,6 +8,9 @@ from django.shortcuts import redirect
 from django.contrib.auth import login
 from django.contrib.auth.decorators import user_passes_test, login_required
 from django.shortcuts import render
+from django.contrib.auth.decorators import permission_required, login_required
+from django.shortcuts import render, redirect, get_object_or_404
+from .models import Book
 
 
 
@@ -69,3 +72,50 @@ def librarian_view(request):
 @login_required
 def member_view(request):
     return render(request, 'relationship_app/member_view.html')
+
+@permission_required('relationship_app.can_add_book', raise_exception=True)
+@login_required
+def add_book(request):
+    """
+    View to add a new book. Only users with 'can_add_book' permission can access.
+    """
+    if request.method == 'POST':
+        title = request.POST.get('title')
+        author_id = request.POST.get('author')
+        if title:
+            book = Book.objects.create(title=title)
+            return render(request, 'relationship_app/add_book_success.html', {'book': book})
+    return render(request, 'relationship_app/add_book.html')
+
+@permission_required('relationship_app.can_change_book', raise_exception=True)
+@login_required
+def edit_book(request, book_id):
+    """
+    View to edit a book. Only users with 'can_change_book' permission can access.
+    """
+    book = get_object_or_404(Book, id=book_id)
+
+    if request.method == 'POST':
+        new_title = request.POST.get('title')
+        if new_title:
+            book.title = new_title
+            book.save()
+            return render(request, 'relationship_app/edit_book_success.html', {'book': book})
+
+    return render(request, 'relationship_app/edit_book.html', {'book': book})
+
+
+@permission_required('relationship_app.can_delete_book', raise_exception=True)
+@login_required
+def delete_book(request, book_id):
+    """
+    View to delete a book. Only users with 'can_delete_book' permission can access.
+    """
+    book = get_object_or_404(Book, id=book_id)
+
+    if request.method == 'POST':
+        book.delete()
+        return render(request, 'relationship_app/delete_book_success.html')
+
+    return render(request, 'relationship_app/delete_book.html', {'book': book})
+
