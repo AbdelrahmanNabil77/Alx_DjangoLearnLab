@@ -1,42 +1,38 @@
 from django.contrib import admin
-from django.contrib import admin
+from .models import Author, Book, CustomUser
 from django.contrib.auth.admin import UserAdmin
-from .models import CustomUser
-from .forms import CustomUserCreationForm, CustomUserChangeForm
-# Register your models here.
-from .models import Book
 
-# Customize how the Book model appears in the Django admin
+
+@admin.register(Author)
+class AuthorAdmin(admin.ModelAdmin):
+    list_display = ('name',)
+    search_fields = ('name',)
+
+
 @admin.register(Book)
 class BookAdmin(admin.ModelAdmin):
-    # Columns to display in the list view
-    list_display = ('title', 'author', 'publication_year')
-    
-    # Add filters for quick navigation
-    list_filter = ('publication_year', 'author')
-    
-    # Enable search by title or author
-    search_fields = ('title', 'author')
+    list_display = ('title', 'author', 'publication_date')
+    search_fields = ('title',)
+    list_filter = ('publication_date',)
+
 
 class CustomUserAdmin(UserAdmin):
-    add_form = CustomUserCreationForm
-    form = CustomUserChangeForm
     model = CustomUser
-    list_display = ('username', 'email', 'date_of_birth', 'is_staff', 'is_active')
-    list_filter = ('is_staff', 'is_active')
     fieldsets = (
-        (None, {'fields': ('username', 'email', 'password')}),
-        ('Personal info', {'fields': ('date_of_birth', 'profile_photo')}),
-        ('Permissions', {'fields': ('is_staff', 'is_active', 'is_superuser', 'groups', 'user_permissions')}),
-        ('Important dates', {'fields': ('last_login', 'date_joined')}),
+        (None, {'fields': ('email', 'password', 'username')}),
+        ('Personal Info', {'fields': ('date_of_birth', 'profile_photo')}),
+        ('Permissions', {'fields': ('is_active', 'is_staff', 'is_superuser', 'groups', 'user_permissions')}),
+        ('Important Dates', {'fields': ('last_login', 'date_joined')}),
     )
     add_fieldsets = (
         (None, {
             'classes': ('wide',),
-            'fields': ('username', 'email', 'password1', 'password2', 'date_of_birth', 'profile_photo', 'is_staff', 'is_active')}
-        ),
+            'fields': ('email', 'username', 'password1', 'password2', 'date_of_birth', 'profile_photo'),
+        }),
     )
+    list_display = ('email', 'username', 'date_of_birth', 'is_staff')
     search_fields = ('email', 'username')
-    ordering = ('username',)
+    ordering = ('email',)
+
 
 admin.site.register(CustomUser, CustomUserAdmin)

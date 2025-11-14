@@ -1,12 +1,12 @@
-from django.contrib.auth.forms import UserCreationForm, UserChangeForm
-from .models import CustomUser
+from django import forms
+from bookshelf.models import Book
 
-class CustomUserCreationForm(UserCreationForm):
-    class Meta(UserCreationForm.Meta):
-        model = CustomUser
-        fields = ('username', 'email', 'date_of_birth', 'profile_photo')
-
-class CustomUserChangeForm(UserChangeForm):
+class ExampleForm(forms.Form):
+    query = forms.CharField(max_length=100, required=True)  # Validates user input
+class BookForm(forms.ModelForm):
     class Meta:
-        model = CustomUser
-        fields = ('username', 'email', 'date_of_birth', 'profile_photo')
+        model = Book
+        fields = ['title', 'author', 'publication_date']
+        widgets = {
+            'publication_date': forms.DateInput(attrs={'type': 'date'}),
+        }
