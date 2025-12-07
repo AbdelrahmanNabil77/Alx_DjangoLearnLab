@@ -1,12 +1,14 @@
-from rest_framework import permissions
+from rest_framework.permissions import BasePermission
 
-class IsAuthorOrReadOnly(permissions.BasePermission):
+class IsAuthorOrReadOnly(BasePermission):
     """
-    Custom permission to only allow authors of a post or comment to edit or delete them.
+    Custom permission to allow only authors of an object to edit or delete it.
     """
     def has_object_permission(self, request, view, obj):
-        # Allow read-only access for everyone
-        if request.method in permissions.SAFE_METHODS:
+        # Read permissions are allowed for any request
+        if request.method in ('GET', 'HEAD', 'OPTIONS'):
             return True
-        # Allow only authors to edit or delete
+
+        # Write permissions are only allowed to the author of the object
         return obj.author == request.user
+

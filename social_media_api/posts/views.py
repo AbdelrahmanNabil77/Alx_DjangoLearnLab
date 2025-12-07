@@ -1,90 +1,86 @@
-from rest_framework import viewsets
-from rest_framework.permissions import IsAuthenticatedOrReadOnly, IsAuthenticated
-from .models import Post, Comment, Like
-from .serializers import PostSerializer, CommentSerializer
-from .permissions import IsAuthorOrReadOnly
-from rest_framework import permissions, filters, status
-from rest_framework.response import Response
-from django.shortcuts import get_object_or_404
-from django.db.models import Q
+from django.shortcuts import render
+from rest_framework import viewsets, permissions
+from .models import Post, Comment
+from .serializers import CommentSerializer, PostSerializer
+from rest_framework import filters
+#  Classes to implementation feeds for post of this social media app.
 from rest_framework.views import APIView
-from notifications.models import Notification
-from django.contrib.contenttypes.models import ContentType
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
 
-
-# Post ViewSet
 class PostViewSet(viewsets.ModelViewSet):
-    queryset = Post.objects.all()
+    queryset = Post.objects.all().order_by('-created_at')
     serializer_class = PostSerializer
-    permission_classes = [IsAuthenticatedOrReadOnly]
-    filter_backends = [filters.OrderingFilter, filters.SearchFilter]
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+    filter_backends = [filters.SearchFilter]
     search_fields = ['title', 'content']
-    ordering_fields = ['created_at', 'title']
 
     def perform_create(self, serializer):
         serializer.save(author=self.request.user)
         
-# Comment ViewSet
 class CommentViewSet(viewsets.ModelViewSet):
-    queryset = Comment.objects.all()
+    queryset = Comment.objects.all().order_by('-created_at')
     serializer_class = CommentSerializer
-    permission_classes = [IsAuthenticatedOrReadOnly]
-
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+    
     def perform_create(self, serializer):
-        serializer.save(author=self.request.user)  
+        serializer.save(author=self.request.user)
         
-# Feed view
+# --------------- #####################------------------------------#
+#  Classes for the implementation of feeds for post of this social media app.
+#----------------######################------------------------------#
 class FeedView(APIView):
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [IsAuthenticated]
     
     def get(self, request):
-        followed_users = request.user.following.all()
-        posts = Post.objects.filter(Q(author__in=followed_users) | Q(author=request.user)).order_by('-created_at')
-        serializer = PostSerializer(posts, many=True)
-        return Response(serializer.data) 
+        following_users = request.user.following.all()
+        posts = Post.objects.filter(author__in=following_users).order_by('-created_at')
+        feed_data = [
+            {
+                "id": posts.id,
+                "author": posts.author.username,
+                "title": posts.title,
+                "content": posts.content,
+                "created_at": posts.created_at,
+            }
+            for post in posts
+        ]
+        return Response(feed_data)
+    
+# from django.shortcuts import get_object_or_404
+from .models import Post, Like
+from rest_framework import generics
+from notifications.models import Notification
 
-
-# dummy = Post.objects.filter(author__in=following_users).order_by('-created_at')  # type: ignore  
-
-# Like post view
 class LikePostView(APIView):
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [IsAuthenticated]
     
     def post(self, request, pk):
-        post = get_object_or_404(Post, pk=pk)
-        
-        # Check if the user has already liked the post
+        post = generics.get_object_or_404(Post, pk=pk)
         like, created = Like.objects.get_or_create(user=request.user, post=post)
         
+        if created:
+            # create a notification for the post's author
+            if post.author != request.user:
+                Notification.objects.create(
+                    recipient=post.author,
+                    actor = request.user,
+                    verb='liked your post',
+                    target=post,
+                )
+            return Response({'message': 'Post liked successfuly!'})
+        else:
+            return Response({'message': 'you already liked this post.'}, status=400)
         
-        if not created:
-           return Response({"detail": "You have already liked this post."}, status=status.HTTP_400_BAD_REQUEST)
-        
-        # Create notification for the post author
-        notification = Notification.objects.create(
-            recipient = post.author,
-            actor = request.user,
-            verb = 'liked your post',
-            target_ct = ContentType.objects.get_for_model(post),
-            target_id = post.id
-        )
-        return Response({'detail': 'Post liked successfully.'}, status=status.HTTP_200_OK)
-
-# Unlike post view
 class UnlikePostView(APIView):
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [IsAuthenticated]
     
     def post(self, request, pk):
-        post = get_object_or_404(Post, pk=pk)
+        post = generics.get_object_or_404(Post, pk=pk)
+        like = Like.objects.filter(user=request.user, post=post)
         
-        # Check if the user has liked the post
-        try:
-            like = Like.objects.get(user=request.user, post=post)
+        if like.exists():
             like.delete()
-        except Like.DoesNotExist:
-            return Response({"detail": "You haven't liked this post."}, status=status.HTTP_400_BAD_REQUEST)
-
-        return Response({"detail": "Post unliked successfully!"}, status=status.HTTP_200_OK)
-    
-dummy = generics.get_object_or_404(Post, pk=pk)           
-                     
+            return Response({'message': 'Post unliked successfully!'})
+        else:
+            return Response({'message': 'You have not liked this post yet.'}, status=400)
